@@ -7,6 +7,7 @@
 
 \graphicspath{{figures/}}
 \newcommand{\courserepo}{https://github.com/jrfaeder/RBM_Intro_BioNetGen}
+\newcommand{\lecturerepo}{https://github.com/jrfaeder/SystemsImmunology}
 \newcommand{\bngplayground}{https://ruleworld.github.io/bngplayground/}
 \newcommand{\bookurl}{https://ruleworld.github.io/bionetgen-book/}
 \newcommand{\yes}{{\color{fsGreen}\checkmark}}
@@ -42,6 +43,21 @@
   \fill[white,visible on=<#1|handout:0>] (\mxa,\mya) rectangle (\mxb,\myb);}
 \newcommand{\erase}[4]{\maskcoords{#1}{#2}{#3}{#4}%
   \fill[white] (\mxa,\mya) rectangle (\mxb,\myb);}
+% \replacefig{file}{x1}{y1}{x2}{y2}: inside \maskedfig, cover that region of the old slide
+% and draw a corrected image in its place, scaled to fit (aspect ratio kept). Put it
+% before any \hide masks so the masks still cover it on earlier steps.
+\newcommand{\replacefig}[5]{\maskcoords{#2}{#3}{#4}{#5}%
+  \fill[white] (\mxa,\mya) rectangle (\mxb,\myb);
+  \pgfpointanchor{img}{north east}\pgfgetlastxy{\imgW}{\imgH}%
+  \pgfmathsetlengthmacro\rpW{(\mxb-\mxa)*\imgW}%
+  \pgfmathsetlengthmacro\rpH{(\mya-\myb)*\imgH}%
+  \node[inner sep=0] at ({(\mxa+\mxb)/2},{(\mya+\myb)/2})
+    {\includegraphics[width=\rpW,height=\rpH,keepaspectratio]{#1}};}
+% Same, but only if figures/<name>.pdf or figures/<name>.png exists; otherwise the
+% original slide content is left alone.
+\newcommand{\replacefigifexists}[5]{%
+  \IfFileExists{figures/#1.pdf}{\replacefig{#1.pdf}{#2}{#3}{#4}{#5}}{%
+    \IfFileExists{figures/#1.png}{\replacefig{#1.png}{#2}{#3}{#4}{#5}}{}}}
 
 % Discussion prompt box
 \newcommand{\discuss}[1]{%
@@ -53,7 +69,7 @@
 \title[Mechanistic Modeling of Intracellular Signaling]{Mechanistic Modeling of\\Intracellular Signaling}
 \subtitle{Advances in Systems Immunology}
 \author{Jim Faeder}
-\institute{Department of Computational and Systems Biology \textperiodcentered{} University of Pittsburgh}
+\institute{Department of Computational and Systems Biology\\University of Pittsburgh}
 \date{October 14, 2026}
 
 \begin{document}
@@ -61,6 +77,14 @@
 % ======================================================================
 \begin{frame}[plain]
   \titlepage
+  % QR code to the lecture repository, lower right of the title page
+  \begin{tikzpicture}[remember picture,overlay]
+    \node[anchor=south east,fill=white,rounded corners=2pt,inner sep=1.5mm] (qr)
+      at ([xshift=-12mm,yshift=11mm]current page.south east)
+      {\qrcode[height=1.9cm,nolink]{\lecturerepo}};
+    \node[anchor=north,font=\tiny,text=white!80!fsNavy,inner sep=0] at ([yshift=-1.2mm]qr.south)
+      {github.com/jrfaeder/SystemsImmunology};
+  \end{tikzpicture}
 \end{frame}
 
 \begin{frame}{Goals for today}
@@ -139,6 +163,10 @@
 \begin{frame}{A computational model formalizes the same reasoning}
   \centering
   \maskedfig[height=0.6\textheight]{09}{160}{105}{840}{540}{%
+    % corrected d-r plot; box starts below the arrow tip (y=343) so the arrow is not covered,
+    % and the strip of the old plot beside the arrow (y 335-343) is erased separately
+    \erase{608}{335}{714}{343}\erase{752}{335}{840}{343}%
+    \replacefig{slide06-dose-response.pdf}{608}{344}{840}{540}%
     \hide{1}{345}{100}{845}{545}%
     \hide{1-2}{600}{300}{845}{545}}
   \vskip1mm
@@ -149,25 +177,29 @@
 
 \begin{frame}{What good is a model?}
   \begin{columns}[T]
-    \begin{column}{0.62\textwidth}
+    \begin{column}{0.58\textwidth}
       \begin{itemize}
         \setlength\itemsep{3mm}
         \item<1-> ``If the use of a model stimulates experiments, even if the model is
-              subsequently shown to be wrong, then it has been successful.''
-              \hfill{\small\color{fsGray}J. D. Murray}
-        \item<2-> ``All models are wrong, but some are useful.''
-              \hfill{\small\color{fsGray}George E. P. Box}
-        \item<3-> ``What I cannot create, I do not understand.''
-              \hfill{\small\color{fsGray}Richard Feynman}
+              subsequently shown to be wrong, then it has been successful.''\\
+              {\small\color{fsGray}--- J. D. Murray}
+        \item<2-> ``All models are wrong, but some are useful.''\\
+              {\small\color{fsGray}--- George E. P. Box}
+        \item<3-> ``What I cannot create, I do not understand.''\\
+              {\small\color{fsGray}--- Richard Feynman}
       \end{itemize}
     \end{column}
-    \begin{column}{0.34\textwidth}
-      \onslide<4->
+    \begin{column}{0.38\textwidth}
       \small
-      The main goal of modeling is understanding, and new experiments that test it.
-      \vskip2mm
-      Every model simplifies, so every model fails somewhere. The question is whether it
-      is useful for the question at hand.
+      \begin{itemize}
+        \setlength\itemsep{3mm}
+        \item<4-> The main goal of modeling is to understand the system better, and to use
+              that understanding to design new experiments.
+        \item<5-> Every model simplifies, so every model is wrong somewhere. What matters is
+              whether it is useful for the question you are asking.
+        \item<6-> Building a model tests our understanding: if we cannot build a model that
+              works, we do not yet know how the system works.
+      \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}
