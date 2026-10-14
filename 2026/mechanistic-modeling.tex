@@ -105,42 +105,28 @@
 % Part 1  (~10 min)
 \section{Why build mechanistic models?}
 
-\begin{frame}{Goals of systems biology}
-  \begin{columns}[c]
-    \begin{column}{0.5\textwidth}
-      \begin{itemize}
-        \setlength\itemsep{2mm}
-        \item<1-> \textbf{Map} the components of the networks that control cell processes.
-        \item<2-> \textbf{Explain} how the components work together to carry out cell
-              functions and ``make decisions.''
-        \item<3-> \textbf{Manipulate} these networks to treat disease.
-        \item<4-> \textbf{Engineer} new circuits: new therapies, bioengineering.
-      \end{itemize}
-    \end{column}
-    \begin{column}{0.46\textwidth}
-      \centering
-      \regionfig[height=0.72\textheight]{02}{542}{135}{852}{449}
-    \end{column}
-  \end{columns}
-\end{frame}
-
 \begin{frame}{Systems biology closes the loop between experiment and model}
   \begin{columns}[c]
-    \begin{column}{0.48\textwidth}
+    \begin{column}{0.46\textwidth}
       \centering
       \maskedfig[height=0.66\textheight]{05}{300}{190}{640}{527}{%
-        \erase{300}{190}{368}{222}}
+        \erase{300}{190}{368}{222}\erase{368}{190}{375}{212}\erase{300}{190}{640}{196}% old slide text
+        \erase{626}{285}{640}{405}}% edge of the old "Key point" box
     \end{column}
-    \begin{column}{0.48\textwidth}
+    \begin{column}{0.5\textwidth}
+      \small
+      \textbf{Goals}: \emph{map} the networks that control cell behavior,
+      \emph{explain} how they make decisions, and \emph{manipulate} or
+      \emph{engineer} them to treat disease.
       \begin{itemize}
-        \setlength\itemsep{2mm}
-        \item<1-> ``Hypothesis-driven research in systems biology'': a closed loop of
-              \emph{wet} and \emph{dry} experiments.
-        \item<2-> Models turn current knowledge into predictions; experiments test them;
+        \setlength\itemsep{1.5mm}
+        \item<2-> ``Hypothesis-driven research'': a closed loop of \emph{wet} and
+              \emph{dry} experiments.
+        \item<3-> Models turn current knowledge into predictions; experiments test them;
               the results revise the model.
       \end{itemize}
-      \vskip3mm
-      \onslide<3->
+      \vskip2mm
+      \onslide<4->
       \begin{block}{Key point}
         Computational models of biological systems are needed to close the loop.
       \end{block}
@@ -149,30 +135,31 @@
   \source{H. Kitano, \emph{Science} \textbf{295}, 1662 (2002)}
 \end{frame}
 
-\begin{frame}{A diagram is a model}
+\begin{frame}{A diagram is a model; a computational model formalizes it}
   \centering
-  \maskedfig[height=0.62\textheight]{08}{144}{69}{947}{516}{%
-    \erase{144}{69}{382}{104}%
-    \hide{1}{330}{60}{950}{520}}
-  \vskip1mm
-  \raggedright\small
-  \onslide<2->{From a pathway diagram, an immunologist reasons out experiments and expected
-  results: informal modeling.}
-\end{frame}
-
-\begin{frame}{A computational model formalizes the same reasoning}
-  \centering
-  \maskedfig[height=0.6\textheight]{09}{160}{105}{840}{540}{%
+  % Left: slide 8 of the 2024 deck (diagram, then the experimental biologist pondering it).
+  \maskedfig[height=0.5\textheight]{08}{144}{69}{947}{516}{%
+    \erase{144}{69}{382}{110}% old slide title
+    \hide{1}{330}{60}{950}{520}}%
+  \hspace{2mm}%
+  % Right: slide 9 from the first arrow on (computational biologist, BioNetGen model,
+  % then the corrected dose-response plot).
+  \maskedfig[height=0.5\textheight]{09}{309}{105}{840}{540}{%
     % corrected d-r plot; box starts below the arrow tip (y=343) so the arrow is not covered,
     % and the strip of the old plot beside the arrow (y 335-343) is erased separately
     \erase{608}{335}{714}{343}\erase{752}{335}{840}{343}%
     \replacefig{slide06-dose-response.pdf}{608}{344}{840}{540}%
-    \hide{1}{345}{100}{845}{545}%
-    \hide{1-2}{600}{300}{845}{545}}
-  \vskip1mm
+    \hide{1-2}{305}{100}{845}{545}%
+    \hide{1-3}{600}{300}{845}{545}}
+  \vskip2mm
   \raggedright\small
-  \onslide<3->{A precise model lets the computer work out the consequences, past the limits of
-  intuition.}
+  \begin{itemize}
+    \setlength\itemsep{1mm}
+    \item<2-> From a pathway diagram, an immunologist reasons out experiments and expected
+          results: informal modeling.
+    \item<4-> A computational model makes the same reasoning precise, and the computer works
+          out the consequences, past the limits of intuition.
+  \end{itemize}
 \end{frame}
 
 \begin{frame}{What good is a model?}
@@ -303,24 +290,21 @@
   \end{columns}
 \end{frame}
 
-\begin{frame}{A reaction network model of EGFR signaling}
-  \centering
-  \maskedfig[height=0.6\textheight]{18}{139}{124}{862}{509}{%
-    \hide{1}{470}{120}{866}{512}}
-  \vskip1mm
-  \raggedright\small
-  \onslide<2->{One rate equation per reaction, one ODE per species: 22 species, 25 reactions.}
-  \source{B. N. Kholodenko et al., \emph{J.\ Biol.\ Chem.}\ \textbf{274}, 30169 (1999)}
-\end{frame}
-
 \begin{frame}{The Kholodenko model explains transient EGFR phosphorylation}
   \centering
-  \maskedfig[height=0.56\textheight]{19}{43}{135}{948}{534}{%
-    \hide{1}{600}{130}{952}{538}}
-  \vskip1mm
+  \regionfig[height=0.46\textheight]{18}{139}{124}{422}{509}%
+  \hspace{3mm}%
+  \maskedfig[height=0.46\textheight]{19}{43}{135}{948}{534}{%
+    \hide{1}{40}{130}{952}{538}%
+    \hide{1-2}{600}{130}{952}{538}}
+  \vskip2mm
   \raggedright\small
-  \onslide<1->{Why does receptor phosphorylation fall so quickly after EGF stimulation?}
-  \onslide<2->{Model: phosphorylated Shc has lower affinity for pEGFR.}
+  \begin{itemize}
+    \setlength\itemsep{1mm}
+    \item<1-> A reaction network written as one ODE per species: 22 species, 25 reactions.
+    \item<2-> Why does receptor phosphorylation fall so quickly after EGF stimulation?
+    \item<3-> Model: phosphorylated Shc has lower affinity for pEGFR.
+  \end{itemize}
   \source{B. N. Kholodenko et al., \emph{J.\ Biol.\ Chem.}\ \textbf{274}, 30169 (1999)}
 \end{frame}
 
@@ -354,22 +338,12 @@
         \item<4-> A delay of 3 s amplifies a 10-fold difference in off-rate
               ($k_{\mathrm{off}}=0.5$ vs.\ 5 s$^{-1}$) into a $\sim10^{6}$-fold difference
               in signal.
+        \item<5-> Fc$\varepsilon$RI, BCR, and TCR signal through sequential phosphorylation
+              and recruitment steps, each a candidate proofreading stage.
       \end{itemize}
     \end{column}
   \end{columns}
-  \source{T. W. McKeithan, \emph{PNAS} \textbf{92}, 5042 (1995)}
-\end{frame}
-
-\begin{frame}{Receptor complexity is consistent with kinetic proofreading}
-  \centering
-  \maskedfig[height=0.56\textheight]{22}{48}{146}{921}{507}{%
-    \hide{1}{560}{140}{925}{510}}
-  \vskip1mm
-  \raggedright\small
-  \onslide<1->{Fc$\varepsilon$RI, BCR, and TCR signal through sequential phosphorylation and
-  recruitment steps.}
-  \onslide<2->{Each step is a candidate proofreading stage.}
-  \source{Faeder et al., \emph{J.\ Immunol.}\ (2003); Goldstein et al., \emph{Nat.\ Rev.\ Immunol.}\ (2004)}
+  \source{T. W. McKeithan, \emph{PNAS} \textbf{92}, 5042 (1995); Goldstein et al., \emph{Nat.\ Rev.\ Immunol.}\ \textbf{4}, 445 (2004)}
 \end{frame}
 
 \begin{frame}{Detailed models of immunoreceptor signaling become complex}
@@ -544,11 +518,19 @@ end reaction rules
 
 \begin{frame}{The systems modeling workflow}
   \centering
+  % Reveal the cycle one stage at a time: 1 construct (box + contact map),
+  % 2 calibrate, 3 analyze, 4 experiments, 5 arrow back to the model + "Repeat as needed"
   \maskedfig[height=0.78\textheight]{39}{129}{99}{877}{537}{%
-    \hide{1}{560}{99}{880}{430}%
-    \hide{1-2}{380}{372}{880}{540}%
-    \hide{1-3}{125}{372}{392}{540}\hide{1-3}{290}{340}{392}{420}}
-  \only<4>{}% last mask lifts on slide 4
+    \hide{1}{560}{128}{880}{420}%                  arrow, Calibrate box, dose fits
+    \hide{1-2}{557}{407}{639}{482}%                 arrow to Analyze
+    \hide{1-2}{622}{453}{826}{541}%                 Analyze box
+    \hide{1-2}{390}{377}{547}{540}%                 PTEN dose curve
+    \hide{1-3}{302}{358}{386}{432}%                 arrow to experiments
+    \hide{1-3}{126}{256}{314}{443}%                 Nur77 / pS6 data
+    \hide{1-3}{126}{445}{340}{541}%                 Perform experiments box
+    \hide{1-4}{257}{194}{340}{269}%                 arrow back to the model
+    \hide{1-4}{370}{318}{568}{353}}%                "Repeat as needed"
+  \only<5>{}% last masks lift on slide 5
 \end{frame}
 
 \begin{frame}{Parameter estimation: inferring model parameters from data}
@@ -625,7 +607,6 @@ end reaction rules
   \raggedright\small
   \onslide<2->{\hl{Strength and duration} of TCR signaling control commitment; PTEN level sets
   the threshold.}
-  \source{Hawse et al., \emph{J.\ Immunol.}\ \textbf{194}, 4615 (2015)}
 \end{frame}
 
 % ======================================================================
@@ -697,31 +678,6 @@ end reaction rules
   \source{Lever et al., \emph{PNAS} (2016)}
 \end{frame}
 
-\begin{frame}{The KPL-IFF model reproduces all four features}
-  \begin{columns}[c]
-    \begin{column}{0.6\textwidth}
-      \small
-      \begin{enumerate}
-        \setlength\itemsep{1.5mm}
-        \item<1-> Bell-shaped d--r for high- but not low-affinity ligands \yes
-        \item<2-> Peak amplitude independent of affinity \yes
-        \item<3-> A single intermediate-affinity ligand is best at low dose \yes
-        \item<4-> Different intermediate-affinity ligands are best at high dose \yes
-      \end{enumerate}
-      \vskip3mm
-      \onslide<5->
-      Each mechanism has a job: proofreading gives affinity sensitivity, IFF gives the bell,
-      limited signaling caps the response of long-lived complexes.
-    \end{column}
-    \begin{column}{0.36\textwidth}
-      \onslide<1->
-      \centering
-      \regionfig[height=0.78\textheight]{57}{689}{154}{949}{521}
-    \end{column}
-  \end{columns}
-  \source{Lever et al., \emph{PNAS} (2016)}
-\end{frame}
-
 \begin{frame}{Is the mechanism unique?}
   \centering
   \regionfig[height=0.32\textheight]{58}{61}{120}{798}{324}
@@ -785,9 +741,9 @@ end reaction rules
     \item<2-> Systematic model rejection identifies a \hl{minimal model} that reproduces the
           observed behavior. It requires
           \begin{itemize}
-            \item kinetic proofreading
-            \item limited signaling
-            \item a feedforward architecture
+            \item kinetic proofreading, for sensitivity to affinity
+            \item limited signaling, which caps the response to long-lived complexes
+            \item an incoherent feedforward loop, which gives the bell shape
           \end{itemize}
     \item<3-> The model predicted, and experiments confirmed, that the effect of
           co-presenting a weak ligand depends on dose.
