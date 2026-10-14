@@ -1,6 +1,6 @@
 # Journal club: guiding questions
 
-**Paper:** Martí-Baena Q, Segura-Morales C, García-Ojalvo J, Serrano L. *Mechanistic pathway modeling reveals how IL-10 generates pleiotropic immune responses.* bioRxiv (2026). https://doi.org/10.64898/2026.06.02.729479
+**Paper:** Martí-Baena Q, Segura-Morales C, García-Ojalvo J, Serrano L. *Mechanistic pathway modeling reveals how IL-10 generates pleiotropic immune responses.* bioRxiv (2026). <https://doi.org/10.64898/2026.06.02.729479>
 
 Use the three questions below to organize your presentation and the discussion that follows. You don't need to answer them in order. Each one connects to an idea from the mechanistic modeling lecture.
 
