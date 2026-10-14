@@ -1,0 +1,4 @@
+# Find the beamer theme in ./theme. Build with:  latexmk mechanistic-modeling.tex
+ensure_path('TEXINPUTS', './theme//');
+$pdf_mode = 1;
+$out_dir = 'build';

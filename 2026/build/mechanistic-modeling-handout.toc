@@ -1,0 +1,6 @@
+\beamer@sectionintoc {1}{Why build mechanistic models?}{3}{0}{1}
+\beamer@sectionintoc {2}{From mechanisms to equations}{11}{0}{2}
+\beamer@sectionintoc {3}{Combinatorial complexity and rule-based modeling}{20}{0}{3}
+\beamer@sectionintoc {4}{Calibrating models to data: T cell fate}{27}{0}{4}
+\beamer@sectionintoc {5}{Case study:\\T cell ligand discrimination}{35}{0}{5}
+\beamer@sectionintoc {6}{How far can mechanistic models scale?}{45}{0}{6}

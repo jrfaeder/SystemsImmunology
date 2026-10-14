@@ -1,0 +1,1002 @@
+\documentclass[aspectratio=169,10pt,t]{beamer}
+\usetheme{faeder}
+
+\usepackage{hyperref}
+\usepackage{qrcode}
+\hypersetup{colorlinks=true,urlcolor=fsTeal,linkcolor=fsNavy}
+
+\graphicspath{{figures/}}
+\newcommand{\courserepo}{https://github.com/jrfaeder/RBM_Intro_BioNetGen}
+\newcommand{\bngplayground}{https://ruleworld.github.io/bngplayground/}
+\newcommand{\bookurl}{https://ruleworld.github.io/bionetgen-book/}
+\newcommand{\yes}{{\color{fsGreen}\checkmark}}
+\newcommand{\no}{{\color{fsAccent}$\times$}}
+
+% ---------------------------------------------------------------- figures
+% Figures are pages of the 2024 PowerPoint deck (figures/slideNN.pdf, 960 x 540 pt).
+% Regions are given in slide points, (x1,y1) top left to (x2,y2) bottom right,
+% as read from the .pptx picture positions.
+%
+%   \regionfig[opts]{NN}{x1}{y1}{x2}{y2}            crop of slide NN
+%   \maskedfig[opts]{NN}{x1}{y1}{x2}{y2}{masks}     same, with masks drawn on top
+%   \hide{spec}{x1}{y1}{x2}{y2}   white mask on the slides in spec, never in the handout;
+%                                 use inside \maskedfig to reveal a figure one panel at a time
+%   \erase{x1}{y1}{x2}{y2}        white mask everywhere (removes old callouts)
+\newcommand{\regionfig}[6][]{%
+  \pgfmathsetmacro\rfB{540-#6}\pgfmathsetmacro\rfR{960-#5}%
+  \includegraphics[trim={#3bp \rfB bp \rfR bp #4bp},clip,#1]{slide#2}}
+\newcommand{\maskedfig}[7][]{%
+  \begin{tikzpicture}
+    \node[anchor=south west,inner sep=0] (img) at (0,0) {\regionfig[#1]{#2}{#3}{#4}{#5}{#6}};
+    \begin{scope}[x={(img.south east)},y={(img.north west)}]
+      \def\cropL{#3}\def\cropT{#4}\def\cropR{#5}\def\cropB{#6}
+      #7
+    \end{scope}
+  \end{tikzpicture}}
+\newcommand{\maskcoords}[4]{%
+  \pgfmathsetmacro\mxa{(#1-\cropL)/(\cropR-\cropL)}%
+  \pgfmathsetmacro\mxb{(#3-\cropL)/(\cropR-\cropL)}%
+  \pgfmathsetmacro\mya{1-(#2-\cropT)/(\cropB-\cropT)}%
+  \pgfmathsetmacro\myb{1-(#4-\cropT)/(\cropB-\cropT)}}
+\newcommand{\hide}[5]{\maskcoords{#2}{#3}{#4}{#5}%
+  \fill[white,visible on=<#1|handout:0>] (\mxa,\mya) rectangle (\mxb,\myb);}
+\newcommand{\erase}[4]{\maskcoords{#1}{#2}{#3}{#4}%
+  \fill[white] (\mxa,\mya) rectangle (\mxb,\myb);}
+
+% Discussion prompt box
+\newcommand{\discuss}[1]{%
+  \begin{tikzpicture}
+    \node[fill=fsGold!18,draw=fsGold,rounded corners=2pt,inner sep=2.2mm,
+          text width=\dimexpr\linewidth-4.4mm\relax,font=\small] {\textbf{Discuss.} #1};
+  \end{tikzpicture}}
+
+\title[Mechanistic Modeling of Intracellular Signaling]{Mechanistic Modeling of\\Intracellular Signaling}
+\subtitle{Advances in Systems Immunology}
+\author{Jim Faeder}
+\institute{Department of Computational and Systems Biology \textperiodcentered{} University of Pittsburgh}
+\date{October 14, 2026}
+
+\begin{document}
+
+% ======================================================================
+\begin{frame}[plain]
+  \titlepage
+\end{frame}
+
+\begin{frame}{Goals for today}
+  By the end of this lecture you should be able to
+  \begin{enumerate}[<+->]
+    \setlength\itemsep{1.5mm}
+    \item explain what a \hl{mechanistic model} is and what it is good for
+    \item translate a reaction scheme into \hl{rate equations}
+    \item explain why \hl{combinatorial complexity} motivates rule-based modeling
+    \item describe how models are \hl{calibrated} to data and used to make predictions
+    \item follow a \hl{model-selection} argument that identifies the minimal signaling
+          architecture consistent with T cell data
+    \item judge how far mechanistic models currently \hl{scale}
+  \end{enumerate}
+\end{frame}
+
+% ======================================================================
+% Part 1  (~10 min)
+\section{Why build mechanistic models?}
+
+\begin{frame}{Goals of systems biology}
+  \begin{columns}[c]
+    \begin{column}{0.5\textwidth}
+      \begin{itemize}
+        \setlength\itemsep{2mm}
+        \item<1-> \textbf{Map} the components of the networks that control cell processes.
+        \item<2-> \textbf{Explain} how the components work together to carry out cell
+              functions and ``make decisions.''
+        \item<3-> \textbf{Manipulate} these networks to treat disease.
+        \item<4-> \textbf{Engineer} new circuits: new therapies, bioengineering.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.46\textwidth}
+      \centering
+      \regionfig[height=0.72\textheight]{02}{542}{135}{852}{449}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Systems biology closes the loop between experiment and model}
+  \begin{columns}[c]
+    \begin{column}{0.48\textwidth}
+      \centering
+      \maskedfig[height=0.66\textheight]{05}{300}{190}{640}{527}{%
+        \erase{300}{190}{368}{222}}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \begin{itemize}
+        \setlength\itemsep{2mm}
+        \item<1-> ``Hypothesis-driven research in systems biology'': a closed loop of
+              \emph{wet} and \emph{dry} experiments.
+        \item<2-> Models turn current knowledge into predictions; experiments test them;
+              the results revise the model.
+      \end{itemize}
+      \vskip3mm
+      \onslide<3->
+      \begin{block}{Key point}
+        Computational models of biological systems are needed to close the loop.
+      \end{block}
+    \end{column}
+  \end{columns}
+  \source{H. Kitano, \emph{Science} \textbf{295}, 1662 (2002)}
+\end{frame}
+
+\begin{frame}{A diagram is a model}
+  \centering
+  \maskedfig[height=0.62\textheight]{08}{144}{69}{947}{516}{%
+    \erase{144}{69}{382}{104}%
+    \hide{1}{330}{60}{950}{520}}
+  \vskip1mm
+  \raggedright\small
+  \onslide<2->{From a pathway diagram, an immunologist reasons out experiments and expected
+  results: informal modeling.}
+\end{frame}
+
+\begin{frame}{A computational model formalizes the same reasoning}
+  \centering
+  \maskedfig[height=0.6\textheight]{09}{160}{105}{840}{540}{%
+    \hide{1}{345}{100}{845}{545}%
+    \hide{1-2}{600}{300}{845}{545}}
+  \vskip1mm
+  \raggedright\small
+  \onslide<3->{A precise model lets the computer work out the consequences, past the limits of
+  intuition.}
+\end{frame}
+
+\begin{frame}{What good is a model?}
+  \begin{columns}[T]
+    \begin{column}{0.62\textwidth}
+      \begin{itemize}
+        \setlength\itemsep{3mm}
+        \item<1-> ``If the use of a model stimulates experiments, even if the model is
+              subsequently shown to be wrong, then it has been successful.''
+              \hfill{\small\color{fsGray}J. D. Murray}
+        \item<2-> ``All models are wrong, but some are useful.''
+              \hfill{\small\color{fsGray}George E. P. Box}
+        \item<3-> ``What I cannot create, I do not understand.''
+              \hfill{\small\color{fsGray}Richard Feynman}
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.34\textwidth}
+      \onslide<4->
+      \small
+      The main goal of modeling is understanding, and new experiments that test it.
+      \vskip2mm
+      Every model simplifies, so every model fails somewhere. The question is whether it
+      is useful for the question at hand.
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Reverse engineering biological systems is hard}
+  \begin{columns}[c]
+    \begin{column}{0.4\textwidth}
+      \centering
+      \regionfig[width=\linewidth]{12}{187}{132}{771}{539}\\
+      {\scriptsize EGFR (ErbB1--4) signaling map}
+    \end{column}
+    \begin{column}{0.24\textwidth}
+      \centering
+      \onslide<2->
+      \regionfig[width=\linewidth]{13}{134}{118}{430}{495}
+    \end{column}
+    \begin{column}{0.32\textwidth}
+      \small
+      \onslide<2->{Can a biologist fix a radio? Compared with an engineer:}
+      \begin{itemize}
+        \setlength\itemsep{1mm}
+        \item<3-> We don't know all the parts.
+        \item<4-> We don't know how they are connected.
+        \item<5-> Many parts belong to several circuits.
+        \item<6-> We don't know the design principles.
+        \item<7-> We lack a common language.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \source{Y. Lazebnik, \emph{Cancer Cell} \textbf{2}, 179 (2002)}
+\end{frame}
+
+\begin{frame}{Even simple systems can confuse us}
+  \begin{columns}[c]
+    \begin{column}{0.64\textwidth}
+      \centering
+      \maskedfig[width=\linewidth]{14}{144}{106}{806}{532}{%
+        \hide{1}{460}{140}{810}{535}}
+    \end{column}
+    \begin{column}{0.33\textwidth}
+      \small
+      \begin{itemize}
+        \setlength\itemsep{2mm}
+        \item<1-> A three-step cascade relaxes smoothly to steady state.
+        \item<2-> Add one negative feedback loop, and the same components can
+              \hl{oscillate}.
+        \item<3-> Oscillation is \hl{emergent}: no component oscillates by itself. It
+              comes from the interactions, once the parts are assembled into a network.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ======================================================================
+% Part 2  (~15 min)
+\section{From mechanisms to equations}
+
+\begin{frame}{The standard modeling protocol}
+  \begin{enumerate}
+    \setlength\itemsep{1.5mm}
+    \item<1-> Identify the components and their interactions.
+          \vskip1mm
+          {\centering \regionfig[height=0.26\textheight]{16}{204}{144}{780}{276}\par}
+    \item<2-> Write the reactions, and from them the rate equations:
+          \quad $\dot{\mathbf{x}} = \mathbf{S}\cdot\mathbf{v}(\mathbf{x})$
+    \item<3-> Determine the concentrations and rate constants.
+    \item<4-> Simulate and analyze the model: ODEs, stochastic simulation (SSA),
+          PDEs for space, Brownian dynamics, \ldots
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{From reactions to differential equations}
+  \begin{columns}[T]
+    \begin{column}{0.6\textwidth}
+      Ligand $L$ binds receptor $R$:
+      \[ R + L \xrightarrow{\;k_1\;} RL \]
+      \onslide<2->
+      Mass action: the rate is proportional to the reactant concentrations,
+      \[ v_1 = k_1\,[R]\,[L] \]
+      \onslide<3->
+      Each species changes by the fluxes that make it minus those that consume it:
+      \[
+        \frac{d[R]}{dt} = -v_1 + \cdots \quad
+        \frac{d[L]}{dt} = -v_1 + \cdots \quad
+        \frac{d[RL]}{dt} = +v_1 + \cdots
+      \]
+    \end{column}
+    \begin{column}{0.36\textwidth}
+      \onslide<1->
+      \centering
+      \regionfig[height=0.34\textheight]{17}{646}{89}{804}{268}
+      \vskip2mm
+      \raggedright\small
+      \onslide<4->
+      The ``$\cdots$'' are terms from other reactions. Fluxes combine by \hl{addition}.
+      \vskip2mm
+      \onslide<5->
+      In general: $\dot{\mathbf{x}} = \mathbf{S}\cdot\mathbf{v}(\mathbf{x})$, with
+      stoichiometry matrix $\mathbf{S}$ and rate vector $\mathbf{v}$.
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{A reaction network model of EGFR signaling}
+  \centering
+  \maskedfig[height=0.6\textheight]{18}{139}{124}{862}{509}{%
+    \hide{1}{470}{120}{866}{512}}
+  \vskip1mm
+  \raggedright\small
+  \onslide<2->{One rate equation per reaction, one ODE per species: 22 species, 25 reactions.}
+  \source{B. N. Kholodenko et al., \emph{J.\ Biol.\ Chem.}\ \textbf{274}, 30169 (1999)}
+\end{frame}
+
+\begin{frame}{The Kholodenko model explains transient EGFR phosphorylation}
+  \centering
+  \maskedfig[height=0.56\textheight]{19}{43}{135}{948}{534}{%
+    \hide{1}{600}{130}{952}{538}}
+  \vskip1mm
+  \raggedright\small
+  \onslide<1->{Why does receptor phosphorylation fall so quickly after EGF stimulation?}
+  \onslide<2->{Model: phosphorylated Shc has lower affinity for pEGFR.}
+  \source{B. N. Kholodenko et al., \emph{J.\ Biol.\ Chem.}\ \textbf{274}, 30169 (1999)}
+\end{frame}
+
+\begin{frame}{The Hoffmann model of NF-$\kappa$B: negative feedback shapes the response}
+  \centering
+  \maskedfig[height=0.6\textheight]{20}{41}{109}{949}{539}{%
+    \hide{1}{480}{105}{955}{358}%
+    \hide{1-2}{480}{358}{955}{540}}
+  \only<3>{}% last mask lifts on slide 3
+  \source{A. Hoffmann et al., \emph{Science} \textbf{298}, 1241 (2002)}
+\end{frame}
+
+\begin{frame}{Kinetic proofreading: how T cells tell ligands apart}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \centering
+      \regionfig[width=0.9\linewidth]{21}{249}{133}{711}{249}
+      \vskip2mm
+      \regionfig[width=0.75\linewidth]{21}{67}{291}{379}{492}
+    \end{column}
+    \begin{column}{0.47\textwidth}
+      \small
+      \begin{itemize}
+        \setlength\itemsep{1.5mm}
+        \item<1-> The bound TCR must pass through $N$ modification steps, rate $k_p$,
+              before it signals. If the ligand unbinds, the receptor resets.
+        \item<2-> Fraction of binding events that reach the signaling state:
+              \[ \left(\frac{k_p}{k_p + k_{\mathrm{off}}}\right)^{N} \approx
+                 e^{-k_{\mathrm{off}}\,\tau}, \qquad \tau = N/k_p \]
+        \item<3-> \hl{Key idea}: the delay $\tau$ allows error correction.
+        \item<4-> A delay of 3 s amplifies a 10-fold difference in off-rate
+              ($k_{\mathrm{off}}=0.5$ vs.\ 5 s$^{-1}$) into a $\sim10^{6}$-fold difference
+              in signal.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \source{T. W. McKeithan, \emph{PNAS} \textbf{92}, 5042 (1995)}
+\end{frame}
+
+\begin{frame}{Receptor complexity is consistent with kinetic proofreading}
+  \centering
+  \maskedfig[height=0.56\textheight]{22}{48}{146}{921}{507}{%
+    \hide{1}{560}{140}{925}{510}}
+  \vskip1mm
+  \raggedright\small
+  \onslide<1->{Fc$\varepsilon$RI, BCR, and TCR signal through sequential phosphorylation and
+  recruitment steps.}
+  \onslide<2->{Each step is a candidate proofreading stage.}
+  \source{Faeder et al., \emph{J.\ Immunol.}\ (2003); Goldstein et al., \emph{Nat.\ Rev.\ Immunol.}\ (2004)}
+\end{frame}
+
+\begin{frame}{Detailed models of immunoreceptor signaling become complex}
+  \centering
+  \maskedfig[height=0.56\textheight]{24}{17}{137}{948}{521}{%
+    \hide{1}{540}{130}{952}{525}}
+  \vskip1mm
+  \raggedright\small
+  \onslide<1->{Left: TCR discrimination with SHP-1 and ERK feedback \emph{(network complexity)}.}
+  \onslide<2->{Right: Fc$\varepsilon$RI, where a few interactions produce hundreds of complexes
+  \emph{(combinatorial complexity)}.}
+  \source{Altan-Bonnet and Germain, \emph{PLoS Biol.}\ (2005); Faeder et al., \emph{J.\ Immunol.}\ (2003)}
+\end{frame}
+
+% ======================================================================
+% Part 3  (~12 min)
+\section{Combinatorial complexity and rule-based modeling}
+
+\begin{frame}{Combinatorial complexity}
+  \centering
+  \maskedfig[height=0.6\textheight]{25}{114}{91}{814}{540}{%
+    \hide{1}{110}{248}{820}{545}%
+    \hide{1-2}{550}{248}{820}{545}}
+  \vskip1mm
+  \raggedright\small
+  \onslide<3->{Four molecules, a handful of interactions: \hl{354 species, 3,680 reactions}.}
+  \source{Faeder et al., \emph{J.\ Immunol.}\ \textbf{170}, 3769 (2003)}
+\end{frame}
+
+\begin{frame}[fragile]{Rule-based modeling: describe the interactions, generate the equations}
+  \begin{columns}[T]
+    \begin{column}{0.36\textwidth}
+      \centering
+      \regionfig[width=0.85\linewidth]{29}{180}{144}{381}{343}
+      \vskip2mm
+      \raggedright\small
+      \onslide<2->
+      Molecules are objects with \textbf{components} (binding and modification sites),
+      which can have \textbf{states}.
+    \end{column}
+    \begin{column}{0.6\textwidth}
+      \onslide<2->
+\begin{lstlisting}[language=bngl,basicstyle=\ttfamily\scriptsize]
+begin molecule types
+  Lig(l,l)
+  Lyn(U,SH2)
+  Syk(tSH2,l~U~P,a~U~P)
+  Rec(a,b~U~P,g~U~P)
+end molecule types
+\end{lstlisting}
+      \onslide<3->
+\begin{lstlisting}[language=bngl,basicstyle=\ttfamily\scriptsize]
+begin reaction rules
+  # Ligand-receptor binding
+  Rec(a) + Lig(l,l) <-> Rec(a!1).Lig(l!1,l)  kp1, km1
+  # Receptor aggregation
+  Rec(a) + Lig(l,l!1) <-> Rec(a!2).Lig(l!2,l!1)  kp2, km2
+  # Constitutive Lyn-receptor binding
+  Rec(b~U) + Lyn(U,SH2) <-> Rec(b~U!1).Lyn(U!1,SH2)  kpL, kmL
+  ...
+end reaction rules
+\end{lstlisting}
+      \small
+      \onslide<4->
+      A rule acts on every species containing its pattern (``don't write, don't care'').
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Network generation}
+  \begin{columns}[c]
+    \begin{column}{0.5\textwidth}
+      \centering
+      \begin{tikzpicture}[box/.style={draw=fsNavy,fill=fsLight,rounded corners=2pt,
+          minimum width=2.6cm,minimum height=8mm,align=center,font=\small},
+          arr/.style={-{Stealth[length=2mm]},line width=1pt,fsGray}]
+        \node[box] (m) at (0,0) {Molecule types\\\textbf{4}};
+        \node[box] (r) at (3.2,0) {Reaction rules\\\textbf{19}};
+        \node[box,fill=fsGold!25,draw=fsGold,visible on=<2->] (g) at (1.6,-1.6) {Network generation};
+        \node[box,visible on=<3->] (s) at (0,-3.2) {Species\\\textbf{354}};
+        \node[box,visible on=<3->] (x) at (3.2,-3.2) {Reactions\\\textbf{3,680}};
+        \draw[arr,visible on=<2->] (m) -- (g); \draw[arr,visible on=<2->] (r) -- (g);
+        \draw[arr,visible on=<3->] (g) -- (s); \draw[arr,visible on=<3->] (g) -- (x);
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.46\textwidth}
+      \begin{itemize}
+        \setlength\itemsep{2mm}
+        \item<2-> Apply each rule to the seed species, add the new species and reactions,
+              and repeat until nothing new appears.
+        \item<3-> The Fc$\varepsilon$RI model: 19 rules generate 3,680 reactions.
+        \item<4-> The generated network is simulated with ODEs or SSA, as before.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \source{Blinov et al., \emph{Bioinformatics} \textbf{20}, 3289 (2004); Harris et al., \emph{Bioinformatics} \textbf{32}, 3366 (2016)}
+\end{frame}
+
+\begin{frame}{Rules capture knowledge at large scale}
+  \begin{columns}[c]
+    \begin{column}{0.6\textwidth}
+      \centering
+      \maskedfig[width=\linewidth]{33}{33}{130}{652}{510}{%
+        \hide{1}{300}{125}{656}{515}}
+    \end{column}
+    \begin{column}{0.36\textwidth}
+      \small
+      \begin{itemize}
+        \setlength\itemsep{1.5mm}
+        \item<1-> Rules are a precise encoding of the modeled structures and interactions.
+        \item<2-> TCR model: 20 molecule types, 129 rules. The number of possible species is
+              too large to generate the network at all.
+        \item<3-> Rule-based models can be visualized and extended as knowledge grows.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \source{Faeder et al., \emph{J.\ Immunol.}\ (2003); Chylek et al., \emph{PLOS One} (2014)}
+\end{frame}
+
+\begin{frame}{Network-free simulation}
+  \begin{columns}[c]
+    \begin{column}{0.56\textwidth}
+      \centering
+      \maskedfig[width=\linewidth]{34}{198}{132}{958}{524}{%
+        \hide{1}{575}{132}{960}{526}}
+    \end{column}
+    \begin{column}{0.4\textwidth}
+      \small
+      \begin{itemize}
+        \setlength\itemsep{2mm}
+        \item<1-> \textbf{Indirect}: generate the network, then simulate it.
+        \item<2-> \textbf{Direct} (NFsim): track individual molecules and apply rules
+              as the simulation runs. Only complexes that actually form are represented.
+        \item<3-> Cost scales with the number of rules and molecules, not with the size
+              of the network.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \source{Sneddon, Faeder, and Emonet, \emph{Nat.\ Methods} \textbf{8}, 177 (2011)}
+\end{frame}
+
+\begin{frame}{Tools: BioNetGen today}
+  \begin{columns}[T]
+    \begin{column}{0.64\textwidth}
+      \begin{itemize}
+        \setlength\itemsep{1.8mm}
+        \item \textbf{BioNetGen}: \href{https://bionetgen.org}{bionetgen.org}, with a
+              \textbf{VS Code extension} for writing and running models
+        \item \textbf{BNG Playground}: write and simulate models in the browser,
+              no installation\\
+              \href{\bngplayground}{ruleworld.github.io/bngplayground}
+        \item \textbf{bngsim}: ODE and stochastic simulation from Python
+              (\code{pip install bngsim bionetgen})
+        \item \textbf{Open book and course}: \emph{Rule-Based Modeling of Biological
+              Systems}, with models, notebooks, and slides\\
+              \href{\bookurl}{ruleworld.github.io/bionetgen-book}
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.32\textwidth}
+      \centering
+      \qrcode[height=2.3cm]{\bngplayground}\\[1mm]
+      {\small BNG Playground}\\[3mm]
+      \qrcode[height=2.3cm]{\bookurl}\\[1mm]
+      {\small The book}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ======================================================================
+% Part 4  (~10 min)
+\section{Calibrating models to data: T cell fate}
+
+\begin{frame}{The systems modeling workflow}
+  \centering
+  \maskedfig[height=0.78\textheight]{39}{129}{99}{877}{537}{%
+    \hide{1}{560}{99}{880}{430}%
+    \hide{1-2}{380}{372}{880}{540}%
+    \hide{1-3}{125}{372}{392}{540}\hide{1-3}{290}{340}{392}{420}}
+  \only<4>{}% last mask lifts on slide 4
+\end{frame}
+
+\begin{frame}{Parameter estimation: inferring model parameters from data}
+  \centering
+  \maskedfig[height=0.6\textheight]{40}{47}{133}{959}{502}{%
+    \hide{1}{300}{125}{962}{505}%
+    \hide{1-2}{660}{125}{962}{505}}
+  \vskip1mm
+  \raggedright\small
+  \onslide<2->{Choose parameters $\theta$ to minimize a cost: the mismatch between
+  simulated and measured data.}
+  \onslide<3->{Most rate constants and concentrations have not been measured, so they are
+  inferred this way.}
+\end{frame}
+
+\begin{frame}{T cell differentiation: an experiment--model collaboration}
+  \centering
+  \maskedfig[height=0.58\textheight]{41}{11}{104}{886}{533}{%
+    \hide{1}{265}{100}{890}{536}%
+    \hide{1-2}{690}{100}{890}{536}}
+  \vskip1mm
+  \raggedright\small
+  \onslide<1->{Low antigen dose favors induction of Foxp3$^+$ regulatory T cells.}
+  \onslide<3->{What mechanism turns dose into a fate decision?}
+  \source{Miskov-Zivanov et al., \emph{Sci.\ Signal.}\ \textbf{6}, ra97 (2013)}
+\end{frame}
+
+\begin{frame}{A rule-based model of TCR--Akt signaling}
+  \begin{columns}[c]
+    \begin{column}{0.32\textwidth}
+      \begin{itemize}
+        \setlength\itemsep{2mm}
+        \item<1-> 110 rules
+        \item<2-> 125 species, 367 reactions
+        \item<3-> 144 parameters, 81 of them fitted
+      \end{itemize}
+      \vskip3mm
+      \onslide<4->
+      {\small Fitted with Bayesian parameter estimation (parallel tempering MCMC), which
+      gives an \emph{ensemble} of parameter sets consistent with the data.}
+    \end{column}
+    \begin{column}{0.66\textwidth}
+      \onslide<1->
+      \centering
+      \regionfig[height=0.78\textheight]{42}{357}{115}{884}{540}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{The model predicts sharp thresholds in antigen dose}
+  \centering
+  \regionfig[width=0.9\linewidth]{45}{8}{142}{945}{530}
+  \vskip1mm
+  \raggedright\small
+  \begin{itemize}
+    \item<2-> Akt and FoxO1 switch sharply with dose; PTEN shows a narrow window.
+    \item<3-> An Akt--FoxO1--PTEN \hl{positive feedback loop} gives bistability.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Prediction: lowering PTEN lowers the threshold}
+  \centering
+  \regionfig[height=0.5\textheight]{47}{64}{121}{881}{489}
+  \vskip1mm
+  \raggedright\small
+  \onslide<2->{Model: halving PTEN shifts the switch to lower dose and shorter stimulation.}\\
+  \onslide<3->{Test: compare PTEN$^{+/+}$ and PTEN$^{+/-}$ mouse T cells.}
+\end{frame}
+
+\begin{frame}{Test: commitment time is reduced in PTEN$^{+/-}$ T cells}
+  \centering
+  \regionfig[height=0.58\textheight]{48}{84}{130}{849}{537}
+  \vskip1mm
+  \raggedright\small
+  \onslide<2->{\hl{Strength and duration} of TCR signaling control commitment; PTEN level sets
+  the threshold.}
+  \source{Hawse et al., \emph{J.\ Immunol.}\ \textbf{194}, 4615 (2015)}
+\end{frame}
+
+% ======================================================================
+% Part 5  (~22 min)
+\section{\texorpdfstring{Case study:\\T cell ligand discrimination}{Case study: T cell ligand discrimination}}
+
+\begin{frame}{Case study: a minimal model from comprehensive data}
+  \centering
+  \regionfig[width=0.72\linewidth]{50}{148}{153}{812}{349}
+  \vskip4mm
+  \raggedright
+  \begin{itemize}
+    \setlength\itemsep{1.5mm}
+    \item<2-> T cells respond to pMHC ligands that vary over a million-fold in affinity and in
+          dose. What signaling architecture explains the full dose--response surface?
+    \item<3-> Approach: \hl{phenotypic models}. Abstract signaling species fitted to data,
+          not molecular detail, and rejected one by one.
+  \end{itemize}
+  \source{Lever et al., \emph{PNAS} \textbf{113}, E6630 (2016); Lever et al., \emph{Nat.\ Rev.\ Immunol.}\ \textbf{14}, 619 (2014)}
+\end{frame}
+
+\begin{frame}{Experimental system and cytokine response data}
+  \centering
+  \maskedfig[height=0.6\textheight]{51}{77}{104}{875}{540}{%
+    \hide{1}{430}{120}{880}{305}%
+    \hide{1-2}{70}{302}{880}{545}}
+  \vskip1mm
+  \raggedright\footnotesize
+  \onslide<2->{Peptide variants span $K_D$ from $\sim$10$^{-10}$ to $>$10$^{-4}$ M.}
+  \onslide<3->{Readouts: IFN-$\gamma$, MIP-1$\beta$ (primary CD8$^+$), IL-8 (Jurkat).}
+\end{frame}
+
+\begin{frame}{Key features of the data}
+  \begin{enumerate}
+    \setlength\itemsep{1mm}
+    \small
+    \item<1-> \hl{Bell-shaped} dose--response for high- but not low-affinity ligands.
+    \item<2-> The peak amplitude of the bell is \hl{independent of affinity}.
+    \item<3-> At low doses (left of the peak), a \emph{single} intermediate-affinity ligand
+          gives the largest response.
+    \item<4-> At high doses (right of the peak), \emph{different} intermediate-affinity
+          ligands give the largest response.
+  \end{enumerate}
+  \vskip1mm
+  \centering
+  \regionfig[height=0.44\textheight]{52}{75}{290}{873}{512}
+  \source{Lever et al., \emph{PNAS} (2016)}
+\end{frame}
+
+\begin{frame}{Sequential model rejection}
+  \centering
+  \maskedfig[width=0.6\linewidth]{56}{66}{144}{862}{473}{%
+    \hide{1}{248}{140}{866}{476}%
+    \hide{1-2}{436}{140}{866}{476}%
+    \hide{1-3}{630}{140}{866}{476}}
+  \vskip1mm
+  \raggedright\footnotesize
+  \renewcommand{\arraystretch}{1.1}%
+  \begin{tabular}{@{}p{3mm}p{0.7\linewidth}p{0.2\linewidth}@{}}
+    \uncover<1->{\textbf{a}} & \uncover<1->{Occupancy: sigmoidal, no bell}
+      & \uncover<1->{\no{} feature 1} \\
+    \uncover<2->{\textbf{b}} & \uncover<2->{+ incoherent feedforward (IFF): bell, but affinity
+      only shifts the curve} & \uncover<2->{\no{} features 3, 4} \\
+    \uncover<3->{\textbf{c}} & \uncover<3->{Kinetic proofreading + IFF: peak falls for the
+      highest affinities} & \uncover<3->{\no{} feature 2} \\
+    \uncover<4->{\textbf{d}} & \uncover<4->{KPL-IFF: + \hl{limited signaling}, $C_N$ becomes
+      non-signaling at rate $\varphi k_p$} & \uncover<4->{\yes{} all four}
+  \end{tabular}
+  \source{Lever et al., \emph{PNAS} (2016)}
+\end{frame}
+
+\begin{frame}{The KPL-IFF model reproduces all four features}
+  \begin{columns}[c]
+    \begin{column}{0.6\textwidth}
+      \small
+      \begin{enumerate}
+        \setlength\itemsep{1.5mm}
+        \item<1-> Bell-shaped d--r for high- but not low-affinity ligands \yes
+        \item<2-> Peak amplitude independent of affinity \yes
+        \item<3-> A single intermediate-affinity ligand is best at low dose \yes
+        \item<4-> Different intermediate-affinity ligands are best at high dose \yes
+      \end{enumerate}
+      \vskip3mm
+      \onslide<5->
+      Each mechanism has a job: proofreading gives affinity sensitivity, IFF gives the bell,
+      limited signaling caps the response of long-lived complexes.
+    \end{column}
+    \begin{column}{0.36\textwidth}
+      \onslide<1->
+      \centering
+      \regionfig[height=0.78\textheight]{57}{689}{154}{949}{521}
+    \end{column}
+  \end{columns}
+  \source{Lever et al., \emph{PNAS} (2016)}
+\end{frame}
+
+\begin{frame}{Is the mechanism unique?}
+  \centering
+  \regionfig[height=0.32\textheight]{58}{61}{120}{798}{324}
+  \vskip1mm
+  \begin{columns}[T]
+    \begin{column}{0.24\textwidth}
+      \centering
+      \onslide<2->
+      \regionfig[height=0.28\textheight]{58}{89}{347}{258}{529}
+    \end{column}
+    \begin{column}{0.26\textwidth}
+      \centering
+      \onslide<3->
+      \regionfig[height=0.3\textheight]{59}{421}{333}{657}{542}
+    \end{column}
+    \begin{column}{0.18\textwidth}
+      \centering
+      \onslide<4->
+      \regionfig[height=0.3\textheight]{60}{507}{308}{643}{538}
+    \end{column}
+    \begin{column}{0.28\textwidth}
+      \onslide<1->
+      \small
+      \onslide<2->{Enumerate every network; for each, sample $10^6$ parameter sets and
+      optimize the best 15.}
+      \vskip1mm
+      \onslide<3->{Compatible networks (1 of 304; 274 of 26,069) \hl{all have a feedforward}
+      architecture.}
+      \vskip1mm
+      \onslide<4->{Feedback alone cannot produce the bell-shaped dose--response
+      (shown analytically).}
+    \end{column}
+  \end{columns}
+  \source{Lever et al., \emph{PNAS} (2016)}
+\end{frame}
+
+\begin{frame}{Possible relationship to known components}
+  \centering
+  \maskedfig[height=0.46\textheight]{62}{66}{133}{888}{523}{%
+    \hide{1}{345}{130}{892}{526}%
+    \hide{1-2}{630}{130}{892}{285}%
+    \hide{1-3}{345}{285}{892}{526}}
+  \vskip1mm
+  \raggedright\footnotesize
+  \begin{itemize}
+    \setlength\itemsep{0.5mm}
+    \item<2-> Kinetic proofreading: sequential ITAM phosphorylation and ZAP-70 recruitment.
+    \item<3-> Limited signaling: TCR ubiquitination, or a membrane environment incompatible
+          with signaling.
+    \item<4-> Incoherent feedforward: LAT recruits SOS (activates Ras) and DOK1/2 with RasGAP
+          (inactivates Ras).
+  \end{itemize}
+  \source{Lever et al., \emph{PNAS} (2016)}
+\end{frame}
+
+\begin{frame}{Key findings}
+  \begin{itemize}
+    \setlength\itemsep{2mm}
+    \item<1-> Cytokine dose--response measured over a wide range of dose \emph{and}
+          affinity.
+    \item<2-> Systematic model rejection identifies a \hl{minimal model} that reproduces the
+          observed behavior. It requires
+          \begin{itemize}
+            \item kinetic proofreading
+            \item limited signaling
+            \item a feedforward architecture
+          \end{itemize}
+    \item<3-> The model predicted, and experiments confirmed, that the effect of
+          co-presenting a weak ligand depends on dose.
+  \end{itemize}
+  \vskip3mm
+  \onslide<4->
+  \discuss{What did a minimal phenotypic model buy here that a detailed molecular model
+  (like the 129-rule TCR model) could not? What did it give up?}
+\end{frame}
+
+\begin{frame}{The story continues}
+  \small
+  \begin{itemize}
+    \setlength\itemsep{2.5mm}
+    \item<1-> \textbf{Ganti et al.\ (2020)}: how the T cell signaling network processes
+          information to discriminate between self and agonist ligands.
+    \item<2-> \textbf{Pettmann et al.\ (2021)}: careful measurements of the discriminatory
+          power of the TCR.
+    \item<3-> \textbf{Britain, Town, and Weiner (2022)}: kinetic proofreading is
+          progressively enhanced from receptor activation to DAG generation.
+  \end{itemize}
+  \vskip3mm
+  \onslide<4->
+  Each combines quantitative measurements with a model and asks which mechanism the data
+  allow. That is the loop from the start of the lecture.
+  \source{Ganti et al., \emph{PNAS} \textbf{117}, 26020 (2020); Pettmann et al., \emph{eLife} \textbf{10}, e67092 (2021); Britain et al., \emph{eLife} \textbf{11}, e75263 (2022)}
+\end{frame}
+
+% ======================================================================
+% Part 6  (~12 min)
+\section{How far can mechanistic models scale?}
+
+\begin{frame}{A pan-cancer mechanistic model of drug response}
+  \begin{columns}[c]
+    \begin{column}{0.46\textwidth}
+      \centering
+      \regionfig[height=0.7\textheight]{68}{48}{112}{416}{540}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \small
+      \begin{itemize}
+        \setlength\itemsep{1.5mm}
+        \item<1-> ERBB, RAS, PI3K--AKT, and MYC/AP1 pathways, assembled from
+              ConsensusPathDB
+        \item<2-> 108 genes, 36 activating mutations (7 of the 10 most frequent cancer
+              drivers)
+        \item<3-> 1,228 species in 4 compartments, 2,686 reactions
+        \item<4-> 7 kinase inhibitors, 4.3 targets per drug on average
+        \item<5-> Phenotype: cell viability modeled as a weighted sum of pathway activities
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \source{Fr\"ohlich et al., \emph{Cell Systems} \textbf{7}, 567 (2018)}
+\end{frame}
+
+\begin{frame}{Larger than previous models by an order of magnitude}
+  \begin{columns}[c]
+    \begin{column}{0.56\textwidth}
+      \centering
+      \regionfig[height=0.76\textheight]{71}{237}{112}{723}{511}
+    \end{column}
+    \begin{column}{0.4\textwidth}
+      \small
+      \begin{itemize}
+        \setlength\itemsep{2mm}
+        \item<1-> Compared with curated BioModels and earlier signaling models
+              (Kholodenko 1999, Chen 2009, \ldots).
+        \item<2-> Most species are molecular \emph{complexes}: combinatorial complexity
+              again.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \source{Fr\"ohlich et al., \emph{Cell Systems} \textbf{7}, 567 (2018)}
+\end{frame}
+
+\begin{frame}{Personalizing the model with genomic data}
+  \begin{columns}[c]
+    \begin{column}{0.48\textwidth}
+      \small
+      \begin{itemize}
+        \setlength\itemsep{2mm}
+        \item<1-> 120 cancer cell lines from 5 tissues.
+        \item<2-> Gene expression sets the synthesis rate of each protein and functional
+              variant in each cell line.
+        \item<3-> All other parameters are shared across cell lines, so every cell line
+              adds training data for the same parameters.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \centering
+      \regionfig[height=0.78\textheight]{72}{560}{109}{912}{501}
+    \end{column}
+  \end{columns}
+  \source{Fr\"ohlich et al., \emph{Cell Systems} \textbf{7}, 567 (2018)}
+\end{frame}
+
+\begin{frame}{Large-scale parameter estimation}
+  \begin{columns}[c]
+    \begin{column}{0.4\textwidth}
+      \centering
+      \regionfig[width=\linewidth]{73}{10}{162}{319}{418}
+    \end{column}
+    \begin{column}{0.56\textwidth}
+      \small
+      \begin{itemize}
+        \setlength\itemsep{1.5mm}
+        \item<1-> $>$4,100 unknown parameters
+        \item<2-> Trained on viability of 120 cell lines $\times$ 7 drugs $\times$ up to 9
+              concentrations: 6,900 conditions, 5-fold cross-validation
+        \item<3-> Problem: one gradient of the objective would take $>$6 CPU years
+        \item<4-> Solution: $>$5 orders of magnitude speed-up from
+              \begin{itemize}
+                \item sparse linear solvers for ODE integration
+                \item adjoint sensitivity analysis
+                \item coarse-grained parallelization
+              \end{itemize}
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \source{Fr\"ohlich et al., \emph{Cell Systems} \textbf{7}, 567 (2018)}
+\end{frame}
+
+\begin{frame}{Fits and predictions}
+  \centering
+  \only<1|handout:1>{\regionfig[height=0.62\textheight]{75}{108}{136}{852}{470}}%
+  \only<2|handout:2>{\regionfig[height=0.56\textheight]{77}{96}{147}{846}{438}}%
+  \only<3|handout:3>{\regionfig[height=0.62\textheight]{80}{177}{112}{783}{463}}%
+  \vskip1mm
+  \raggedright\small
+  \only<1|handout:1>{Quantitative agreement across cell lines, drugs, and concentrations.}%
+  \only<2|handout:2>{Prediction accuracy on held-out data is comparable to established
+    machine-learning (statistical) methods.}%
+  \only<3|handout:3>{The model, trained on single drugs, predicts responses to drug
+    combinations.}
+  \source{Fr\"ohlich et al., \emph{Cell Systems} \textbf{7}, 567 (2018)}
+\end{frame}
+
+% TODO (revisit): check whether the frontier in scale has moved since 2018.
+\begin{frame}{Since 2018: has the frontier moved?}
+  \begin{columns}[T]
+    \begin{column}{0.55\textwidth}
+      \footnotesize
+      \begin{itemize}
+        \setlength\itemsep{1.2mm}
+        \item<1-> \textbf{Scale}: calibrated models are still about $10^3$ species and
+              $10^3$--$10^4$ parameters. Example: SPARCED, a single-cell pan-cancer
+              model of proliferation and death signaling (Erdem et al., 2022).
+        \item<2-> \textbf{Infrastructure}: standard formats and tools make
+              parameter-estimation problems reusable, e.g.\ PEtab (Schmiester et al., 2021).
+        \item<3-> \textbf{The bottleneck} is building and curating models: reading the
+              literature, choosing mechanisms, and assembling rules.
+        \item<4-> \textbf{LLMs} may change exactly that step: drafting rules from papers,
+              proposing alternative mechanisms, checking models against data.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.41\textwidth}
+      \vskip2mm
+      \onslide<5->
+      \discuss{If constructing a model became cheap, what would limit mechanistic
+      modeling: data, parameter identifiability, or validation? How would you check a
+      model that an LLM wrote?}
+    \end{column}
+  \end{columns}
+  \source{Erdem et al., \emph{Nat.\ Commun.}\ \textbf{13}, 3555 (2022); Schmiester et al., \emph{PLoS Comput.\ Biol.}\ \textbf{17}, e1008646 (2021)}
+\end{frame}
+
+% ======================================================================
+\begin{frame}{Summary}
+  \begin{itemize}[<+->]
+    \setlength\itemsep{2mm}
+    \item Mechanistic models turn assumptions about mechanism into testable,
+          quantitative predictions, and close the loop with experiment.
+    \item \textbf{Simple models} can be analyzed rigorously and expose core principles:
+          kinetic proofreading, feedback, feedforward.
+    \item \textbf{Detailed models} map known molecular components onto mechanisms.
+          Rule-based modeling handles the combinatorial complexity.
+    \item \textbf{Calibration} to data is the main bottleneck. New algorithms now fit
+          models with thousands of parameters to thousands of conditions.
+    \item Model selection against comprehensive data can identify the \textbf{minimal
+          architecture} a system must have.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{References}
+  \tiny
+  \setlength\parskip{0.6mm}
+  \begin{columns}[T]
+    \begin{column}{0.49\textwidth}
+      H. Kitano, ``Systems biology: a brief overview,'' \emph{Science} 295, 1662 (2002).\par
+      Y. Lazebnik, ``Can a biologist fix a radio?,'' \emph{Cancer Cell} 2, 179 (2002).\par
+      T. W. McKeithan, ``Kinetic proofreading in T-cell receptor signal transduction,''
+        \emph{PNAS} 92, 5042 (1995).\par
+      B. N. Kholodenko et al., ``Quantification of short term signaling by the epidermal
+        growth factor receptor,'' \emph{J.\ Biol.\ Chem.}\ 274, 30169 (1999).\par
+      A. Hoffmann et al., ``The I$\kappa$B--NF-$\kappa$B signaling module: temporal control
+        and selective gene activation,'' \emph{Science} 298, 1241 (2002).\par
+      J. R. Faeder et al., ``Investigation of early events in Fc$\varepsilon$RI-mediated
+        signaling using a detailed mathematical model,'' \emph{J.\ Immunol.}\ 170, 3769 (2003).\par
+      B. Goldstein, J. R. Faeder, and W. S. Hlavacek, ``Mathematical and computational models
+        of immune-receptor signalling,'' \emph{Nat.\ Rev.\ Immunol.}\ 4, 445 (2004).\par
+      M. L. Blinov et al., ``BioNetGen: software for rule-based modeling of signal
+        transduction,'' \emph{Bioinformatics} 20, 3289 (2004).\par
+      G. Altan-Bonnet and R. N. Germain, ``Modeling T cell antigen discrimination based on
+        feedback control of digital ERK responses,'' \emph{PLoS Biol.}\ 3, e356 (2005).\par
+      M. W. Sneddon, J. R. Faeder, and T. Emonet, ``Efficient modeling, simulation and
+        coarse-graining of biological complexity with NFsim,'' \emph{Nat.\ Methods} 8, 177 (2011).\par
+      J. A. P. Sekar and J. R. Faeder, ``Rule-based modeling of signal transduction: a
+        primer,'' \emph{Methods Mol.\ Biol.}\ 880, 139 (2012).\par
+      N. Miskov-Zivanov et al., ``The duration of T cell stimulation is a critical determinant
+        of cell fate and plasticity,'' \emph{Sci.\ Signal.}\ 6, ra97 (2013).\par
+      L. A. Chylek et al., ``Phosphorylation site dynamics of early T-cell receptor
+        signaling,'' \emph{PLOS One} 9, e104240 (2014).\par
+    \end{column}
+    \begin{column}{0.49\textwidth}
+      M. Lever et al., ``Phenotypic models of T cell activation,'' \emph{Nat.\ Rev.\ Immunol.}\
+        14, 619 (2014).\par
+      W. F. Hawse et al., ``Differential regulation of PTEN by TCR, Akt, and FoxO1 controls
+        CD4$^+$ T cell fate decisions,'' \emph{J.\ Immunol.}\ 194, 4615 (2015).\par
+      L. A. Harris et al., ``BioNetGen 2.2: advances in rule-based modeling,''
+        \emph{Bioinformatics} 32, 3366 (2016).\par
+      M. Lever et al., ``Architecture of a minimal signaling pathway explains the T-cell
+        response to a 1 million-fold variation in antigen affinity and dose,''
+        \emph{PNAS} 113, E6630 (2016).\par
+      F. Fr\"ohlich et al., ``Efficient parameter estimation enables the prediction of drug
+        response using a mechanistic pan-cancer pathway model,'' \emph{Cell Syst.}\ 7, 567 (2018).\par
+      J. A. P. Sekar and J. R. Faeder, ``An introduction to rule-based modeling of immune
+        receptor signaling,'' in \emph{Systems Immunology}, CRC Press (2019).\par
+      R. S. Ganti et al., ``How the T cell signaling network processes information to
+        discriminate between self and agonist ligands,'' \emph{PNAS} 117, 26020 (2020).\par
+      L. Schmiester et al., ``PEtab: interoperable specification of parameter estimation
+        problems in systems biology,'' \emph{PLoS Comput.\ Biol.}\ 17, e1008646 (2021).\par
+      J. Pettmann et al., ``The discriminatory power of the T cell receptor,''
+        \emph{eLife} 10, e67092 (2021).\par
+      D. M. Britain, J. P. Town, and O. D. Weiner, ``Progressive enhancement of kinetic
+        proofreading in T cell antigen discrimination from receptor activation to DAG
+        generation,'' \emph{eLife} 11, e75263 (2022).\par
+      C. Erdem et al., ``A scalable, open-source implementation of a large-scale mechanistic
+        model for single cell proliferation and death signaling,''
+        \emph{Nat.\ Commun.}\ 13, 3555 (2022).\par
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\end{document}

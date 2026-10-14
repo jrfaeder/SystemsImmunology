@@ -1,0 +1,38 @@
+\frametitle{Rule-based modeling: describe the interactions, generate the equations}
+\begin{columns}[T]
+    \begin{column}{0.36\textwidth}
+      \centering
+      \regionfig[width=0.85\linewidth]{29}{180}{144}{381}{343}
+      \vskip2mm
+      \raggedright\small
+      \onslide<2->
+      Molecules are objects with \textbf{components} (binding and modification sites),
+      which can have \textbf{states}.
+    \end{column}
+    \begin{column}{0.6\textwidth}
+      \onslide<2->
+\begin{lstlisting}[language=bngl,basicstyle=\ttfamily\scriptsize]
+begin molecule types
+  Lig(l,l)
+  Lyn(U,SH2)
+  Syk(tSH2,l~U~P,a~U~P)
+  Rec(a,b~U~P,g~U~P)
+end molecule types
+\end{lstlisting}
+      \onslide<3->
+\begin{lstlisting}[language=bngl,basicstyle=\ttfamily\scriptsize]
+begin reaction rules
+  # Ligand-receptor binding
+  Rec(a) + Lig(l,l) <-> Rec(a!1).Lig(l!1,l)  kp1, km1
+  # Receptor aggregation
+  Rec(a) + Lig(l,l!1) <-> Rec(a!2).Lig(l!2,l!1)  kp2, km2
+  # Constitutive Lyn-receptor binding
+  Rec(b~U) + Lyn(U,SH2) <-> Rec(b~U!1).Lyn(U!1,SH2)  kpL, kmL
+  ...
+end reaction rules
+\end{lstlisting}
+      \small
+      \onslide<4->
+      A rule acts on every species containing its pattern (``don't write, don't care'').
+    \end{column}
+  \end{columns}
